@@ -1,5 +1,14 @@
 # PageSum
 
+This repo contains the code, data and trained models for our EMNLP 2022 paper ["Leveraging Locality in Abstractive Text Summarization"](https://arxiv.org/abs/2205.12476).
+
+PageSum is applied to individual pages, which contain parts of inputs grouped by the principle of locality, during both encoding and decoding stages.
+We explored three kinds of localities in text summarization at different levels, ranging from sentences to documents
+
+<div  align="center">
+ <img src="model.png" width = "450" alt="d" align=center />
+</div>
+
 ## Quick Links
 
 - [How to Install](#1-how-to-install)
@@ -120,7 +129,7 @@ You could load these checkpoints using `model.load_state_dict(torch.load(path_to
 
 |          | Checkpoints | Model Output | Reference Output |
 |----------|---------|---------|---------|
-| arXiv    | [model_spatial.bin](https://drive.google.com/file/d/1OqRl0h5viP_kvo-KvQrPuPjucyq2ihFy/view?usp=sharing) <br> [model_section.bin](https://drive.google.com/file/d/1MnUBK9qcs2ubsz2Qg06qzZT8wUwLMBJg/view?usp=sharing) | [arxiv.test.spatial.out](output/arxiv.test.spatial.out) <br> [arxiv.test.section.out](output/arxiv.test.section.out) | [arxiv.test.reference](output/arxiv.test.reference)  |
-| PubMed    | [model.bin](https://drive.google.com/file/d/12T8VzXkdEL1oOG_PUXOor8G0m3slqDe5/view?usp=sharing) | [pubmed.test.ours.out](output/pubmed.test.ours.out) | [pubmed.test.reference](output/pubmed.test.reference)  |
-| MultiNews    | [model.bin](https://drive.google.com/file/d/1-SrHwhvpcZOeK2VR9sM5n0SRoLrJ5hhP/view?usp=sharing) | [multinews.test.ours.out](output/multinews.test.ours.out) | [multinews.test.reference](output/multinews.test.reference)  |
-| GovReport    | [model.bin](https://drive.google.com/file/d/1k0f7754r1pS2b78mmJnU-UPjN1UgVOfR/view?usp=sharing) | [govreport.test.ours.out](output/govreport.test.ours.out) | [govreport.test.reference](output/govreport.test.reference)  |
+| arXiv    | [model_spatial.bin](https://drive.google.com/file/d/1szFPXJDmXXCtHrSgRDituzABR29JxBqX/view?usp=sharing) <br> [model_section.bin](https://drive.google.com/file/d/1x3mj6zCCUoQ5P9IYIrFK53sIS4rOChGu/view?usp=sharing) | [arxiv.test.spatial.out](output/arxiv.test.spatial.out) <br> [arxiv.test.section.out](output/arxiv.test.section.out) | [arxiv.test.reference](output/arxiv.test.reference)  |
+| PubMed    | [model.bin](https://drive.google.com/file/d/1EimoIDdGne1xak2lmKcmgMvj9p-EDjsE/view?usp=sharing) | [pubmed.test.ours.out](output/pubmed.test.ours.out) | [pubmed.test.reference](output/pubmed.test.reference)  |
+| MultiNews    | [model.bin](https://drive.google.com/file/d/118dblnyZ8Cl-DX_0vlJqHtpgJruFYQCW/view?usp=sharing) | [multinews.test.ours.out](output/multinews.test.ours.out) | [multinews.test.reference](output/multinews.test.reference)  |
+| GovReport    | [model.bin](https://drive.google.com/file/d/1BQoZu69w6IM-o4T_zJtVocw5a5VkvaoX/view?usp=sharing) | [govreport.test.ours.out](output/govreport.test.ours.out) | [govreport.test.reference](output/govreport.test.reference)  |
