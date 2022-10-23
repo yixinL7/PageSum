@@ -8,17 +8,16 @@ import random
 from compare_mt.rouge.rouge_scorer import RougeScorer
 from transformers import BartTokenizer
 from utils import Recorder
-from data_utils import to_cuda, collate_mp, MyDataset
+from data_utils import to_cuda, collate_mp, PageSumDataset
 from torch.utils.data import DataLoader
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from functools import partial
 import logging
-from label_smoothing_loss import label_smoothing_loss
 from nltk import sent_tokenize
-from datetime import datetime
-from modeling_bart_ours import PageSumModel, PageSumModelBase
+from modeling_bart_ours import PageSumModel
 from transformers import Adafactor
+from config import arxiv, arxiv_discourse, pubmed, govreport, multinews
 
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 logging.getLogger("transformers.tokenization_utils_base").setLevel(logging.ERROR)
@@ -27,7 +26,6 @@ logging.getLogger("transformers.tokenization_utils_fast").setLevel(logging.ERROR
 
 def base_setting(args):
     args.batch_size = getattr(args, 'batch_size', 3)  # batch size
-    args.num_layers = getattr(args, 'num_layers', 0)  # number of layers
     args.epoch = getattr(args, 'epoch', 100)  # epoch
     args.report_freq = getattr(args, "report_freq", 100)  # report frequency
     args.accumulate_step = getattr(args, "accumulate_step", 6)  # accumulate step
@@ -39,22 +37,16 @@ def base_setting(args):
     args.max_lr = getattr(args, "max_lr", 2e-3)  # max learning rate
     args.datatype = getattr(args, "datatype", "base")  # data type
     args.dataset = getattr(args, "dataset", "govreport")  # dataset
-    args.arch = getattr(args, "arch", "att")  # architecture
-    args.max_len = getattr(args, "max_len", 1024)  # max length
     args.smooth = getattr(args, "smooth", 0.1)  # label smoothing
-    args.total_len = getattr(args, "total_len", 1024)  # total length
     args.length_penalty = getattr(args, "length_penalty", 2.0)  # length penalty
     args.do_generate = getattr(args, "do_generate", False)  # do generate
+    args.page_max_len = getattr(args, "page_max_len", 1024)  # max length for one page
+    args.tgt_max_len = getattr(args, "tgt_max_len", 1024)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 900)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 500)  # min length for generate
-    args.tgt_max_len = getattr(args, "tgt_max_len", 1024)  # max length for target
-    args.num_clusters = getattr(args, "num_clusters", 7)  # number of clusters
-    args.is_base = getattr(args, "is_base", True)  # is base
-    args.is_random = getattr(args, "is_random", False)  # is random
+    args.num_clusters = getattr(args, "num_pages", 7)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
-    args.cluster_type = getattr(args, "cluster_type", None)  # cluster type
-    args.is_json = getattr(args, "is_json", True)  # is json
-    args.prompting = getattr(args, "prompting", False)  # is prompting
+    args.page_type = getattr(args, "page_type", None)  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", True)  # gradient checkpointing
 
 
@@ -82,10 +74,21 @@ class label_smoothing_loss(nn.Module):
 
 def evaluation(args):
     # load data
-    base_setting(args)
+    if args.config == "arxiv":
+        arxiv(args)
+    elif args.config == "arxiv_discourse":
+        arxiv_discourse(args)
+    elif args.config == "pubmed":
+        pubmed(args)
+    elif args.config == "govreport":
+        govreport(args)
+    elif args.config == "multinews":
+        multinews(args)
+    else:
+        base_setting(args)
     tok = BartTokenizer.from_pretrained(args.model_type)
     collate_fn = partial(collate_mp, pad_token_id=tok.pad_token_id, is_test=True)
-    test_set = MyDataset(f"./{args.dataset}/{args.datatype}/test", args.model_type, is_test=True, maxlen=args.max_len, total_len=args.total_len, tgt_max_len=args.tgt_max_len, num_clusters=args.num_clusters, is_base=args.is_base, is_json=True, is_random=False, cluster_type=args.cluster_type, prompting=args.prompting)
+    test_set = PageSumDataset(f"./{args.dataset}/{args.datatype}/test", args.model_type, is_test=True, page_max_len=args.page_max_len, tgt_max_len=args.tgt_max_len, num_pages=args.num_pages, page_type=args.page_type)
     dataloader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=4, collate_fn=collate_fn)
     # build models
     model_path = args.pretrained if args.pretrained is not None else args.model_type
@@ -134,7 +137,7 @@ def evaluation(args):
                     min_length=args.gen_min_len + 1,  # +1 from original because we start at step=1
                     no_repeat_ngram_size=3,
                     length_penalty=2,
-                    early_stopping=True,
+                    early_stopping=False,
                     seq_num=args.num_clusters,
                 )
                 dec = [tok.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in summaries]
@@ -247,7 +250,7 @@ def test(dataloader, scorer, args, gpuid, tok):
                     attention_mask=input_mask,
                     decoder_input_ids=decoder_input_ids, 
                     decoder_attention_mask=decoder_attention_mask,
-                    output_hidden_states=True
+                    output_hidden_states=False
                     )
                 output = output[0]
                 output = output[:, :-1]  # truncate last token
@@ -266,7 +269,18 @@ def test(dataloader, scorer, args, gpuid, tok):
 
 
 def run(rank, args):
-    base_setting(args)
+    if args.config == "arxiv":
+        arxiv(args)
+    elif args.config == "arxiv_discourse":
+        arxiv_discourse(args)
+    elif args.config == "pubmed":
+        pubmed(args)
+    elif args.config == "govreport":
+        govreport(args)
+    elif args.config == "multinews":
+        multinews(args)
+    else:
+        base_setting(args)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
@@ -281,8 +295,8 @@ def run(rank, args):
     tok = BartTokenizer.from_pretrained(args.model_type)
     collate_fn = partial(collate_mp, pad_token_id=tok.pad_token_id, is_test=False)
     collate_fn_val = partial(collate_mp, pad_token_id=tok.pad_token_id, is_test=True)
-    train_set = MyDataset(f"./{args.dataset}/{args.datatype}/train", args.model_type, maxlen=args.max_len, total_len=args.total_len, tgt_max_len=args.tgt_max_len, num_clusters=args.num_clusters, is_base=args.is_base, is_json=args.is_json, is_random=args.is_random, cluster_type=args.cluster_type, prompting=args.prompting)
-    val_set = MyDataset(f"./{args.dataset}/{args.datatype}/val", args.model_type, is_test=True, maxlen=args.max_len, total_len=args.total_len, tgt_max_len=args.tgt_max_len, num_clusters=args.num_clusters, is_base=args.is_base, is_json=args.is_json, is_random=args.is_random, cluster_type=args.cluster_type, prompting=args.prompting)
+    train_set = PageSumDataset(f"./{args.dataset}/{args.datatype}/train", args.model_type, page_max_len=args.page_max_len, tgt_max_len=args.tgt_max_len, num_pages=args.num_pages, page_type=args.page_type)
+    val_set = PageSumDataset(f"./{args.dataset}/{args.datatype}/val", args.model_type, is_test=True, page_max_len=args.page_max_len, tgt_max_len=args.tgt_max_len, num_pages=args.num_pages, page_type=args.page_type)
     if is_mp:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
     	 train_set, num_replicas=world_size, rank=rank, shuffle=True)
@@ -295,10 +309,7 @@ def run(rank, args):
         val_dataloader = DataLoader(val_set, batch_size=4, shuffle=False, num_workers=4, collate_fn=collate_fn_val)
     # build models
     model_path = args.pretrained if args.pretrained is not None else args.model_type
-    if args.arch == "base":
-        scorer = PageSumModelBase.from_pretrained(model_path)
-    else:
-        scorer = PageSumModel.from_pretrained(model_path, num_layers=args.num_layers, gradient_checkpointing=args.gradient_checkpointing, use_cache=not args.gradient_checkpointing)
+    scorer = PageSumModel.from_pretrained(model_path, gradient_checkpointing=args.gradient_checkpointing, use_cache=not args.gradient_checkpointing)
     if len(args.model_pt) > 0:
         scorer.load_state_dict(torch.load(os.path.join("./cache", args.model_pt), map_location=f'cuda:{gpuid}'))
     if args.cuda:
@@ -349,7 +360,7 @@ def run(rank, args):
                 attention_mask=input_mask,
                 decoder_input_ids=decoder_input_ids, 
                 decoder_attention_mask=decoder_attention_mask,
-                output_hidden_states=True
+                output_hidden_states=False
                 )
             output = output[0]
             output = output[:, :-1]  # truncate last token
@@ -419,6 +430,7 @@ if __name__ ==  "__main__":
     parser.add_argument("-l", "--log", action="store_true", help="log")
     parser.add_argument("-p", "--port", type=int, default=12355, help="port")
     parser.add_argument("--model_pt", default="", type=str, help="model path")
+    parser.add_argument("--config", default="base", type=str, help="config path")
     args = parser.parse_args()
     if args.cuda is False:
         if args.evaluate:
