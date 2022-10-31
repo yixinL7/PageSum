@@ -47,6 +47,8 @@ class PageSumDataset(Dataset):
         while len(label) < len(data["article"]):
             label.append(self.num_pages - 1)
         
+        article = [[] for _ in range(self.num_pages)]
+        
         if self.page_type == "multi_doc":
             for i in range(min(len(data["article"]), self.num_pages)):
                 article[i].append(data["article"][i])

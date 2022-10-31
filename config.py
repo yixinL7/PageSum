@@ -18,7 +18,7 @@ def arxiv(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 400)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 350)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 100)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 7)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 7)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
     args.page_type = getattr(args, "page_type", None)  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", False)  # gradient checkpointing
@@ -44,7 +44,7 @@ def arxiv_discourse(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 400)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 350)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 100)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 8)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 8)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
     args.page_type = getattr(args, "page_type", "multi_doc")  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", False)  # gradient checkpointing
@@ -70,7 +70,7 @@ def pubmed(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 400)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 400)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 150)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 7)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 7)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
     args.page_type = getattr(args, "page_type", None)  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", False)  # gradient checkpointing
@@ -96,7 +96,7 @@ def govreport(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 1024)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 900)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 500)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 20)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 20)  # number of pages
     args.optim = getattr(args, "optim", "adafactor")  # optimizer
     args.page_type = getattr(args, "page_type", None)  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", True)  # gradient checkpointing
@@ -122,7 +122,7 @@ def multinews(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 400)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 400)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 150)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 7)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 7)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
     args.page_type = getattr(args, "page_type", "multi_doc")  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", False)  # gradient checkpointing

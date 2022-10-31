@@ -38,6 +38,7 @@ Our code is based on Huggingface's [Transformers](https://github.com/huggingface
 - `modeling_bart_ours.py`, `modeling_utils.py`, `generation_utils.py` -> modefied from Transformers library for PageSum's locality-aware modeling
 - `utils.py` -> utility functions
 - `cal_rouge.py` -> calculate ROUGE scores
+- `config.py` -> hyperparameter configurations for different experiments
 
 ### Workspace
 Following directories should be created for our experiments.
@@ -52,7 +53,8 @@ We use the following datasets for our experiments.
 - MultiNews -> https://github.com/Alex-Fabbri/Multi-News
 - GovReport -> https://github.com/luyang-huang96/LongDocSum
 
-We provided the preprocessed data below. Each data example is stored as an individual json file.
+We provided the preprocessed data below. Each data example is stored as an individual json file. 
+After downloading the zipped dataset files, you should unzip them in the base directory.
 
 | arXiv    | PubMed  | MultiNews | GovReport |
 |----------|---------|---------|---------|
@@ -64,16 +66,22 @@ We provided the preprocessed data below. Each data example is stored as an indiv
 You may specify the hyper-parameters in `main.py`.
 ### Train
 ```
-python main.py --cuda --gpuid [list of gpuid] -l
+python main.py --cuda --gpuid [list of gpuid] -l --config [config name, optional]
 ```
+Five hyperparameter configurations are provided in `config.py`: 
+`arxiv`, `arxiv_discourse`, `pubmed`, `govreport`, `multinews`
+
+The results will be stored in to a subdirectory of `./cache`.
+
 ### Fine-tune
 ```
-python main.py --cuda --gpuid [list of gpuid] -l --model_pt [model path]
+python main.py --cuda --gpuid [list of gpuid] -l --model_pt [model path] --config [config name, optional]
 ```
 ### Inference
 ```
-python main.py --cuda --gpuid [single gpu] -e --model_pt [model path]
+python main.py --cuda --gpuid [single gpu] -e --model_pt [model path] --config [config name, optional]
 ```
+The output is written to a subdirectory of `./result` with the file name `test.out`. The model path should be a subdirectory of `cache`. Please omit `./cache` in the model path (i.e. --model_pt should be a path *relative* to the `./cache` direcotory.) 
 
 ### Evaluate
 
@@ -85,7 +93,7 @@ _ROUGE_PATH = '/YOUR-ABSOLUTE-PATH/ROUGE-RELEASE-1.5.5/'
 #### Example: evaluating PageSum on arXiv
 ```console
 # write the system-generated files to a file: ./result/arxiv/test.out
-python main.py --cuda --gpuid 0 -e --model_pt arxiv/model.bin
+python main.py --cuda --gpuid 0 -e --model_pt arxiv/model.bin --config arxiv
 
 # calculate the ROUGE scores using ROUGE Perl Package
 python cal_rouge.py --ref ./arxiv/test.target --hyp ./result/arxiv/test.out.tokenized -l

@@ -44,7 +44,7 @@ def base_setting(args):
     args.tgt_max_len = getattr(args, "tgt_max_len", 1024)  # max length for target
     args.gen_max_len = getattr(args, "gen_max_len", 900)  # max length for generate
     args.gen_min_len = getattr(args, "gen_min_len", 500)  # min length for generate
-    args.num_clusters = getattr(args, "num_pages", 7)  # number of pages
+    args.num_pages = getattr(args, "num_pages", 7)  # number of pages
     args.optim = getattr(args, "optim", "adam")  # optimizer
     args.page_type = getattr(args, "page_type", None)  # cluster type, (None or 'multi_doc')
     args.gradient_checkpointing = getattr(args, "gradient_checkpointing", True)  # gradient checkpointing
@@ -92,7 +92,7 @@ def evaluation(args):
     dataloader = DataLoader(test_set, batch_size=1, shuffle=False, num_workers=4, collate_fn=collate_fn)
     # build models
     model_path = args.pretrained if args.pretrained is not None else args.model_type
-    scorer = PageSumModel.from_pretrained(model_path, num_layers=args.num_layers, use_cache=True, gradient_checkpointing=False)
+    scorer = PageSumModel.from_pretrained(model_path, gradient_checkpointing=args.gradient_checkpointing, use_cache=not args.gradient_checkpointing)
     if args.cuda:
         scorer = scorer.cuda()
 
@@ -118,7 +118,7 @@ def evaluation(args):
         mle_fn = nn.CrossEntropyLoss(ignore_index=tok.pad_token_id)
     rouge_scorer = RougeScorer(['rouge1', 'rouge2'], use_stemmer=True)
     rouge1, rouge2 = 0, 0
-    scorer.set_seq_num(args.num_clusters)
+    scorer.set_seq_num(args.num_pages)
     do_generate = True
     do_score = False
 
@@ -138,7 +138,7 @@ def evaluation(args):
                     no_repeat_ngram_size=3,
                     length_penalty=2,
                     early_stopping=False,
-                    seq_num=args.num_clusters,
+                    seq_num=args.num_pages,
                 )
                 dec = [tok.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in summaries]
                 for (sample, d) in zip(batch["data"], dec):
@@ -163,7 +163,7 @@ def evaluation(args):
                     attention_mask=input_mask,
                     decoder_input_ids=decoder_input_ids, 
                     decoder_attention_mask=decoder_attention_mask,
-                    output_hidden_states=True
+                    output_hidden_states=False
                     )
                 output = output[0]
                 output = output[:, :-1]
@@ -202,7 +202,7 @@ def test(dataloader, scorer, args, gpuid, tok):
                         no_repeat_ngram_size=3,
                         length_penalty=2.0,
                         early_stopping=True,
-                        seq_num=args.num_clusters
+                        seq_num=args.num_pages
                     )
                 else:
                     summaries = scorer.generate(
@@ -213,7 +213,7 @@ def test(dataloader, scorer, args, gpuid, tok):
                         no_repeat_ngram_size=3,
                         length_penalty=2.0,
                         early_stopping=True,
-                        seq_num=args.num_clusters
+                        seq_num=args.num_pages
                     )
                 dec = [tok.decode(g, skip_special_tokens=True, clean_up_tokenization_spaces=False) for g in summaries]
                 for (sample, d) in zip(batch["data"], dec):
@@ -337,9 +337,9 @@ def run(rank, args):
         dist.all_reduce(id, op=dist.reduce_op.SUM)
         id = int(id.item())
     if is_mp:
-        scorer.module.set_seq_num(args.num_clusters)
+        scorer.module.set_seq_num(args.num_pages)
     else:
-        scorer.set_seq_num(args.num_clusters)
+        scorer.set_seq_num(args.num_pages)
     # start training
     for epoch in range(args.epoch):
         s_optimizer.zero_grad()
