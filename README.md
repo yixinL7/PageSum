@@ -71,7 +71,7 @@ python main.py --cuda --gpuid [list of gpuid] -l --config [config name, optional
 Five hyperparameter configurations are provided in `config.py`: 
 `arxiv`, `arxiv_discourse`, `pubmed`, `govreport`, `multinews`
 
-The results will be stored in to a subdirectory of `./cache`.
+The results will be stored into a subdirectory of `./cache`.
 
 ### Fine-tune
 ```
